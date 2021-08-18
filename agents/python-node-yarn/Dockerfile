@@ -1,12 +1,27 @@
-FROM jetbrains/teamcity-minimal-agent:latest
+FROM jetbrains/teamcity-minimal-agent:2021.1.2
 
 USER root
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV DEBCONF_NONINTERACTIVE_SEEN true
 
+ARG PythonVersion=3.9.6
+ARG DockerComposeVersion=1.29.2
+ARG NodeVersion=14
+
+# install node and yarn
+RUN curl -sL "https://deb.nodesource.com/setup_${NodeVersion}.x" -o nodesource_setup.sh
+RUN bash nodesource_setup.sh
+
+RUN apt-get update && \
+    apt-get install -y nodejs && \
+    npm install -g npm yarn 
+RUN node -v
+RUN npm -v
+RUN yarn -v
+
 # Install Python stuff
-RUN apt-get update && apt-get install -y \
+RUN apt-get install -y \
     build-essential \
     checkinstall \
     libreadline-gplv2-dev \
@@ -26,9 +41,9 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-# Install 3.6.6
-RUN cd /usr/src && wget https://www.python.org/ftp/python/3.6.6/Python-3.6.6.tgz && tar xzf Python-3.6.6.tgz
-RUN cd /usr/src/Python-3.6.6 && ./configure && make altinstall
+# Install Python
+RUN cd /usr/src && wget https://www.python.org/ftp/python/${PythonVersion}/Python-${PythonVersion}.tgz && tar xzf Python-${PythonVersion}.tgz
+RUN cd /usr/src/Python-${PythonVersion} && ./configure && make altinstall
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -47,16 +62,6 @@ RUN apt-get update && apt-get install -y \
     awscli
 
 # docker compose
-RUN curl -L "https://github.com/docker/compose/releases/download/1.23.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+RUN curl -L "https://github.com/docker/compose/releases/download/${DockerComposeVersion}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 RUN chmod +x /usr/local/bin/docker-compose
-
-# node 11 and yarn 1.15
-RUN curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh
-RUN bash nodesource_setup.sh
-RUN apt-get install -y nodejs
-RUN node -v
-
-RUN curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-RUN apt-get update && apt-get install yarn
-RUN yarn -v
+RUN docker-compose --version

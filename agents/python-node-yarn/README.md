@@ -3,10 +3,10 @@
 ## Installed software
 
 ### Python
-* python 3.6.6
+* python 3.9.6
 
 ### NodeJS
-* nodejs 11.x
+* nodejs 14.x
 * yarn 1.15
 
 ### DB

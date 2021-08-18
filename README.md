@@ -139,7 +139,7 @@ teamcity-server_1                    | [TeamCity] Administrator can login from w
 
 You can use my preconfigured custom agents with already installed necessary dependencies
 
-### Python 3 | Node.js 11, yarn 1.15
+### Python 3 | Node.js 14, yarn 1.22
 
 Agent [info](agents/python-node-yarn/README.md)
 
