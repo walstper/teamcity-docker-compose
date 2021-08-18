@@ -1,12 +1,12 @@
 version: "3.7"
 services:
   traefik:
-    image: "traefik:v2.4"
+    image: "traefik:v2.5"
     container_name: "traefik"
     hostname: "traefik"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./traefik_config.yml:/traefik.yml:ro"
+      - "./traefik/traefik_config.yml:/traefik.yml:ro"
     ports:
       - "80:80"
       - "8080:8080"

@@ -1,108 +1,80 @@
-version: '3'
-
+version: "3.7"
 services:
-  server:
-    image: jetbrains/teamcity-server:latest
-    networks:
-      - web
-      - default
-    volumes:
-      - "/opt/teamcity/data:/data/teamcity_server/datadir"
-      - "/opt/teamcity/logs:/opt/teamcity/logs"
-    hostname: ${VIRTUAL_HOST}
-    ports:
-      - "8111"
-    depends_on:
-      - postgres
-    env_file: .env
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=server"
-      - "traefik.frontend.rule=Host:${VIRTUAL_HOST}"
-      - "traefik.docker.network=web"
-      - "traefik.port=8111"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-  agent:
-    build: ./agents/python-node-yarn
-    env_file: .env
-    depends_on:
-      - redis
-    #     if you need docker inside the agent
-    #     (http://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/)
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    labels:
-      - "traefik.enable=false"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-  postgres:
-    build: ./postgres
-    volumes:
-      - "/opt/teamcity/pg_data:/var/lib/postgresql/data"
-      - "/opt/teamcity/pg_backup:/backups"
-    env_file: .env
-    labels:
-      - "traefik.enable=false"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-  redis:
-    image: redis:3.2
-    labels:
-      - "traefik.enable=false"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
   traefik:
-    image: traefik:1.7-alpine
-    restart: on-failure
-    command:
-      - --logLevel=ERROR
-      - --docker
-      - --docker.watch=true
-      - --docker.exposedByDefault=false
-      - --docker.domain=${VIRTUAL_HOST}
-      - --defaultEntryPoints=http,https
-      - --entryPoints=Name:http Address::80 Redirect.EntryPoint:https
-      - --entryPoints=Name:https Address::443 TLS
-      - --acme=true
-      - --acme.domains=${LETSENCRYPT_HOST}
-      - --acme.email=${LETSENCRYPT_EMAIL}
-      - --acme.storage=acme.json
-      - --acme.OnHostRule=false
-      - --acme.onDemand=false
-      - --acme.entryPoint=https
-      - --acme.httpChallenge
-      - --acme.httpChallenge.entryPoint=http
+    image: "traefik:v2.4"
+    container_name: "traefik"
+    hostname: "traefik"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik/traefik_config_ssl.yml:/traefik.yml:ro"
+      - "./traefik/acme.json:/acme.json"
     ports:
       - "80:80"
       - "443:443"
-    networks:
-      - web
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/traefik/acme.json:/acme.json
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-networks:
-  web:
-    external: true
+      - "8080:8080"
+    env_file: .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=web, web-secure, dashboard"
+      - "traefik.http.routers.traefik.rule=Host(`$VIRTUAL_HOST`)"
+  # postgres:
+  #   build: ./postgres
+  #   container_name: "postgres"
+  #   hostname: "postgres"
+  #   volumes:
+  #     - "/opt/teamcity/pg_data:/var/lib/postgresql/data"
+  #     - "/opt/teamcity/pg_backup:/backups"
+  #   ports:
+  #     - "5234"
+  #   env_file: .env
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "5"
+  # server:
+  #   image: "jetbrains/teamcity-server:2021.1.2"
+  #   container_name: "teamcity_server"
+  #   hostname: "server"
+  #   ports:
+  #     - "8111"
+  #   volumes:
+  #     - "/opt/teamcity/data:/data/teamcity_server/datadir"
+  #     - "/opt/teamcity/logs:/opt/teamcity/logs"
+  #   env_file: .env
+  #   depends_on:
+  #     - postgres
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.teamcity.entrypoints=web, web-secure"
+  #     - "traefik.http.routers.teamcity.rule=Host(`$VIRTUAL_HOST`)"
+  # agent:
+  #   build: ./agents/python-node-yarn
+  #   container_name: "teamcity_agent"
+  #   hostname: "agent"
+  #   env_file: .env
+  #   #     if you need docker inside the agent
+  #   #     (http://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/)
+  #   volumes:
+  #     - "/var/run/docker.sock:/var/run/docker.sock"
+  #   ports:
+  #     - "9090"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.teamcity_agent.entrypoints=agents"
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "5"
+  #TEST-intended lets'encrypt tool
+  # pebble:
+  #   image: letsencrypt/pebble
+  #   command: pebble -config /test/my-pebble-config.json
+  #   ports:
+  #     - 14000:14000  # ACME port
+  #     - 15000:15000  # Management port
+  #   environment:
+  #     - PEBBLE_VA_NOSLEEP=1
+  #   volumes:
+  #     - ./my-pebble-config.json:/test/my-pebble-config.json:rw

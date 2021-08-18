@@ -16,7 +16,8 @@ stop:  ## Stop services
 	docker-compose -f $(COMPOSE_FILE) stop
 
 build:  ## Build all images
-	docker-compose -f $(COMPOSE_FILE) build --pull --no-cache
+	docker-compose -f $(COMPOSE_FILE) build 
+## --pull --no-cache
 
 down:  ## Stop services and cleanup
 	docker-compose -f $(COMPOSE_FILE) down --rmi all

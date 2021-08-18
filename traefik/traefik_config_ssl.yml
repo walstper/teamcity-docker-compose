@@ -1,0 +1,57 @@
+## STATIC CONFIGURATION
+log:
+  level: INFO
+
+api:
+  dashboard: true
+
+entryPoints:
+  web-secure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: leresolver
+        domains:
+          - main: "$LETSENCRYPT_HOST"
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: web-secure
+          scheme: https
+  teamcity:
+    address: ":8111"
+  agents:
+    address: ":9090"
+  dashboard:
+    address: ":8080"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+
+certificatesResolvers:
+  leresolver:
+    # Enable ACME (Let's Encrypt): automatic SSL.
+    acme:
+      email: "$LETSENCRYPT_EMAIL"
+      storage: "acme.json"
+      # CA Server to use (this is staging)
+      caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
+      httpChallenge:
+        entryPoint: web
+      dnsChallenge:
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+
+
+## Dynamic configuration
+http:
+  routers:
+    traefik:
+      rule: "Host(`$VIRTUAL_HOST`)"
+      tls:
+        certResolver: leresolver

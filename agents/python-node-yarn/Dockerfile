@@ -14,8 +14,9 @@ RUN curl -sL "https://deb.nodesource.com/setup_${NodeVersion}.x" -o nodesource_s
 RUN bash nodesource_setup.sh
 
 RUN apt-get update && \
-    apt-get install -y nodejs && \
-    npm install -g npm yarn 
+    apt-get install -y nodejs
+RUN npm install -g npm 
+RUN npm install -g yarn 
 RUN node -v
 RUN npm -v
 RUN yarn -v

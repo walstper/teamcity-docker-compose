@@ -6,7 +6,10 @@
 * python 3.9.6
 
 ### NodeJS
-* nodejs 14.x
+* nodejs 14
+COMPOSE_FILE=docker-compose.yml
+all: help  # Show this message
+.x
 * yarn 1.15
 
 ### DB
