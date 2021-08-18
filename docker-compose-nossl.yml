@@ -1,86 +1,62 @@
-version: '3'
-
+version: "3.7"
 services:
-  server:
-    image: jetbrains/teamcity-server:latest
-    networks:
-      - web
-      - default
+  traefik:
+    image: "traefik:v2.5"
+    container_name: "traefik"
+    hostname: "traefik"
     volumes:
-      - "/opt/teamcity/data:/data/teamcity_server/datadir"
-      - "/opt/teamcity/logs:/opt/teamcity/logs"
-    hostname: ${VIRTUAL_HOST}
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik/traefik_config.yml:/traefik.yml:ro"
     ports:
-      - "8111"
-    depends_on:
-      - postgres
+      - "80:80"
+      - "8080:8080"
+  postgres:
+    build: ./postgres
+    container_name: "postgres"
+    hostname: "postgres"
+    volumes:
+      - "/opt/teamcity/pg_data:/var/lib/postgresql/data"
+      - "/opt/teamcity/pg_backup:/backups"
+    ports:
+      - "5234"
     env_file: .env
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=server"
-    # VIRTUAL_HOST for local case should be localhost
-    # if you wanna nossl version for non local case... no, you don't
-      - "traefik.frontend.rule=Host:localhost"
-      - "traefik.docker.network=web"
-      - "traefik.port=8111"
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
-
+  server:
+    image: "jetbrains/teamcity-server:2021.1.2"
+    container_name: "teamcity_server"
+    hostname: "server"
+    ports:
+      - "8111"
+    volumes:
+      - "/opt/teamcity/data:/data/teamcity_server/datadir"
+      - "/opt/teamcity/logs:/opt/teamcity/logs"
+    env_file: .env
+    depends_on:
+      - postgres
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.teamcity.entrypoints=web"
+      - "traefik.http.routers.teamcity.rule=Host(`$VIRTUAL_HOST`)"
   agent:
     build: ./agents/python-node-yarn
+    container_name: "teamcity_agent"
+    hostname: "agent"
     env_file: .env
     #     if you need docker inside the agent
     #     (http://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/)
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-    labels:
-      - "traefik.enable=false"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-  postgres:
-    build: ./postgres
-    volumes:
-      - "/opt/teamcity/pg_data:/var/lib/postgresql/data"
-      - "/opt/teamcity/pg_backup:/backups"
-    env_file: .env
-    labels:
-      - "traefik.enable=false"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-
-  traefik:
-    image: traefik:1.7-alpine
-    restart: on-failure
-    command:
-      - --logLevel=ERROR
-      - --docker
-      - --docker.watch=true
-      - --docker.exposedByDefault=false
-      - --docker.domain=docker.localhost
-      - --defaultEntryPoints=http
-      - --entryPoints=Name:http Address::80
     ports:
-      - "80:80"
-    networks:
-      - web
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "9090"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.teamcity_agent.entrypoints=agents"
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
-
-networks:
-  web:
-    external: true
